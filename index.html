@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Parking Advisor</title>
+  <title>Mappa Parcheggi Roma</title>
+
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0f172a">
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   
@@ -65,7 +68,6 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     }
 
-    /* Tasto per la posizione GPS */
     .gps-btn {
       position: absolute;
       bottom: 25px;
@@ -108,6 +110,13 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   
   <script>
+    // Registrazione del Service Worker per l'installazione PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(() => console.log('Service Worker Registrato!'))
+        .catch(err => console.error('Errore SW:', err));
+    }
+
     const map = L.map('map').setView([41.8988, 12.4883], 13.5);
 
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -120,7 +129,6 @@
     let userMarker = null;
     let userCircle = null;
 
-    // Carica i dati dei parcheggi dal server Express
     fetch('/api/parcheggi')
       .then(res => res.json())
       .then(data => {
@@ -150,7 +158,6 @@
       })
       .catch(err => console.error('Errore durante il caricamento:', err));
 
-    // Funzione per trovare la posizione GPS dell'utente
     function trovaPosizione() {
       if (!navigator.geolocation) {
         alert("La geolocalizzazione non è supportata dal tuo browser.");
@@ -163,11 +170,9 @@
           const lng = position.coords.longitude;
           const accuracy = position.coords.accuracy;
 
-          // Rimuovi vecchi marker posizione se esistono
           if (userMarker) map.removeLayer(userMarker);
           if (userCircle) map.removeLayer(userCircle);
 
-          // Raggio di precisione GPS
           userCircle = L.circle([lat, lng], {
             radius: accuracy,
             color: '#2563eb',
@@ -175,7 +180,6 @@
             fillOpacity: 0.15
           }).addTo(map);
 
-          // Marker azzurro per la posizione dell'utente
           userMarker = L.circleMarker([lat, lng], {
             radius: 9,
             fillColor: '#2563eb',
@@ -185,7 +189,6 @@
             fillOpacity: 1
           }).addTo(map).bindPopup("<b>Ti trovi qui!</b>").openPopup();
 
-          // Sposta la mappa sulla posizione dell'utente
           map.flyTo([lat, lng], 17, { duration: 1.5 });
         },
         (error) => {
@@ -195,10 +198,8 @@
       );
     }
 
-    // Prova a individuare la posizione automaticamente all'avvio
     trovaPosizione();
 
-    // Funzione di ricerca universale
     async function cercaVia() {
       const query = document.getElementById('searchInput').value.trim();
       if (!query) return;
