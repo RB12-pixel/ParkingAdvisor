@@ -1,0 +1,13 @@
+{
+  "name": "Parking Advisor",
+  "version": "1.0.0",
+  "description": "PWA per visualizzare le strisce di parcheggio a Roma",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "node-fetch": "^2.6.7"
+  }
+}
