@@ -5,6 +5,9 @@ const fetch = require('node-fetch');
 const app = express();
 let parcheggiRoma = { type: "FeatureCollection", features: [] };
 
+// Servire i file statici presenti nella cartella root (es. manifest.json, sw.js, icone)
+app.use(express.static(__dirname));
+
 // Funzione per scaricare i dati dei parcheggi da OpenStreetMap
 async function caricaDatiParcheggi() {
   console.log("⏳Caricamento in corso...");
@@ -109,7 +112,8 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Avvio del server sulla porta 3000
-app.listen(3000, () => {
-  console.log('🚀 Server attivo su http://localhost:3000');
+// Avvio del server sulla porta 3000 o sulla porta assegnata da Render
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server attivo sulla porta ${PORT}`);
 });
