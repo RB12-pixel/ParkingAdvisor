@@ -65,6 +65,28 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     }
 
+    /* Tasto per la posizione GPS */
+    .gps-btn {
+      position: absolute;
+      bottom: 25px;
+      right: 20px;
+      z-index: 1000;
+      background: #2563eb;
+      color: white;
+      border: none;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      font-size: 22px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .gps-btn:active { background: #1d4ed8; }
+
     .popup-title { font-weight: bold; font-size: 15px; margin-bottom: 5px; color: #1e293b; }
     .popup-info { font-size: 13px; line-height: 1.4; color: #334155; }
   </style>
@@ -78,6 +100,8 @@
     </div>
     <div id="info">🔵 Blu | ⚪ Bianco | 🟡 Giallo</div>
   </div>
+
+  <button class="gps-btn" onclick="trovaPosizione()" title="Dove mi trovo?">🎯</button>
 
   <div id="map"></div>
 
@@ -93,6 +117,8 @@
 
     let parcheggiLayer = null;
     let tempMarker = null;
+    let userMarker = null;
+    let userCircle = null;
 
     // Carica i dati dei parcheggi dal server Express
     fetch('/api/parcheggi')
@@ -124,6 +150,54 @@
       })
       .catch(err => console.error('Errore durante il caricamento:', err));
 
+    // Funzione per trovare la posizione GPS dell'utente
+    function trovaPosizione() {
+      if (!navigator.geolocation) {
+        alert("La geolocalizzazione non è supportata dal tuo browser.");
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          const accuracy = position.coords.accuracy;
+
+          // Rimuovi vecchi marker posizione se esistono
+          if (userMarker) map.removeLayer(userMarker);
+          if (userCircle) map.removeLayer(userCircle);
+
+          // Raggio di precisione GPS
+          userCircle = L.circle([lat, lng], {
+            radius: accuracy,
+            color: '#2563eb',
+            fillColor: '#3b82f6',
+            fillOpacity: 0.15
+          }).addTo(map);
+
+          // Marker azzurro per la posizione dell'utente
+          userMarker = L.circleMarker([lat, lng], {
+            radius: 9,
+            fillColor: '#2563eb',
+            color: '#ffffff',
+            weight: 3,
+            opacity: 1,
+            fillOpacity: 1
+          }).addTo(map).bindPopup("<b>Ti trovi qui!</b>").openPopup();
+
+          // Sposta la mappa sulla posizione dell'utente
+          map.flyTo([lat, lng], 17, { duration: 1.5 });
+        },
+        (error) => {
+          alert("Impossibile accedere alla posizione. Assicurati di aver dato i permessi GPS al browser.");
+        },
+        { enableHighAccuracy: true }
+      );
+    }
+
+    // Prova a individuare la posizione automaticamente all'avvio
+    trovaPosizione();
+
     // Funzione di ricerca universale
     async function cercaVia() {
       const query = document.getElementById('searchInput').value.trim();
@@ -132,7 +206,6 @@
       const queryLower = query.toLowerCase();
       let trovataNeiParcheggi = false;
 
-      // 1. Cerca prima tra le vie censite con parcheggio
       if (parcheggiLayer) {
         parcheggiLayer.eachLayer(layer => {
           const nomeVia = layer.feature.properties.via.toLowerCase();
@@ -145,7 +218,6 @@
         });
       }
 
-      // 2. Se non la trova tra i parcheggi, cerca qualsiasi strada a Roma tramite Nominatim
       if (!trovataNeiParcheggi) {
         try {
           const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', Roma, Italia')}`);
@@ -171,7 +243,6 @@
       }
     }
 
-    // Permette di cercare premendo Invio
     document.getElementById('searchInput').addEventListener('keypress', function (e) {
       if (e.key === 'Enter') cercaVia();
     });
