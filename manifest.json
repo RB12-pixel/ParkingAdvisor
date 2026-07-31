@@ -1,6 +1,6 @@
 {
   "name":"Parking Advisor",
-  "short_name": "Parkadv",
+  "short_name": "Parkad",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
