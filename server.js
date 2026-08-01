@@ -3,23 +3,27 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
+
+// Servire i file statici (index.html, manifest.json, sw.js, ecc.)
 app.use(express.static(__dirname));
 
+// Caricamento istantaneo dal file JSON salvato su GitHub
 let parcheggiRoma = { type: "FeatureCollection", features: [] };
 
-// Carica i dati all'avvio istantaneamente dal file JSON salvato
 try {
-  if (fs.existsSync(path.join(__dirname, 'parcheggi.json'))) {
-    const data = fs.readFileSync(path.join(__dirname, 'parcheggi.json'));
-    parcheggiRoma = JSON.parse(data);
-    console.log(`⚡ Dati caricati all'istante! ${parcheggiRoma.features.length} strade caricate.`);
+  const filePath = path.join(__dirname, 'parcheggi.json');
+  if (fs.existsSync(filePath)) {
+    const rawData = fs.readFileSync(filePath, 'utf8');
+    parcheggiRoma = JSON.parse(rawData);
+    console.log("⚡ Dati parcheggi caricati in memoria all'istante!");
   } else {
-    console.log("⚠️ File parcheggi.json non trovato. Esegui prima 'node salva_dati.js'");
+    console.log("⚠️ File parcheggi.json non trovato nella repository.");
   }
 } catch (err) {
   console.error("❌ Errore nella lettura del file parcheggi.json:", err.message);
 }
 
+// API endpoint che risponde in pochissimi millisecondi
 app.get('/api/parcheggi', (req, res) => {
   res.json(parcheggiRoma);
 });
