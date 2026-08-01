@@ -3,27 +3,71 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-
-// Servire i file statici (index.html, manifest.json, sw.js, ecc.)
 app.use(express.static(__dirname));
 
-// Caricamento istantaneo dal file JSON salvato su GitHub
 let parcheggiRoma = { type: "FeatureCollection", features: [] };
 
+// Legge i dati di OpenStreetMap dal file locale (caricamento ISTANTANEO)
 try {
-  const filePath = path.join(__dirname, 'parcheggi.json');
+  const filePath = path.join(__dirname, 'parcheggi_raw.json');
   if (fs.existsSync(filePath)) {
-    const rawData = fs.readFileSync(filePath, 'utf8');
-    parcheggiRoma = JSON.parse(rawData);
-    console.log("⚡ Dati parcheggi caricati in memoria all'istante!");
-  } else {
-    console.log("⚠️ File parcheggi.json non trovato nella repository.");
+    const rawData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    
+    // Convertiamo i dati grezzi di OSM in linee colorate per Leaflet
+    const nodes = {};
+    rawData.elements.forEach(el => {
+      if (el.type === 'node') nodes[el.id] = [el.lon, el.lat];
+    });
+
+    const features = [];
+    rawData.elements.forEach(el => {
+      if (el.type === 'way' && el.nodes) {
+        const coords = el.nodes.map(id => nodes[id]).filter(Boolean);
+        if (coords.length > 1) {
+          const tags = el.tags || {};
+          const nomeVia = tags.name || "Tratto Parcheggio";
+          
+          let colore = "#0088FF"; // Blu
+          let tipo = "blu";
+          let tariffa = "A pagamento / Disco orario";
+
+          const parkingTag = tags["parking:lane:both"] || tags["parking:lane:right"] || tags["parking:lane:left"] || "";
+
+          if (parkingTag.includes("free") || tags["fee"] === "no") {
+            colore = "#FFFFFF"; // Bianco
+            tipo = "bianca";
+            tariffa = "Gratuito";
+          } else if (parkingTag.includes("disabled") || parkingTag.includes("loading") || tags["amenity"] === "parking") {
+            colore = "#FFCC00"; // Giallo
+            tipo = "gialla";
+            tariffa = "Riservato / Stallo";
+          }
+
+          features.push({
+            type: "Feature",
+            properties: {
+              via: nomeVia,
+              colore: colore,
+              tipo: tipo,
+              tariffa: tariffa,
+              orario: "In base alla segnaletica"
+            },
+            geometry: {
+              type: "LineString",
+              coordinates: coords
+            }
+          });
+        }
+      }
+    });
+
+    parcheggiRoma.features = features;
+    console.log(`⚡ Dati OpenStreetMap caricati all'istante! Trovate ${features.length} strade.`);
   }
 } catch (err) {
-  console.error("❌ Errore nella lettura del file parcheggi.json:", err.message);
+  console.error("❌ Errore nella lettura del file:", err.message);
 }
 
-// API endpoint che risponde in pochissimi millisecondi
 app.get('/api/parcheggi', (req, res) => {
   res.json(parcheggiRoma);
 });
