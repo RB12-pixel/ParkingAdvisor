@@ -100,7 +100,7 @@
       <input type="text" id="searchInput" placeholder="Cerca qualsiasi via a Roma...">
       <button onclick="cercaVia()">Cerca</button>
     </div>
-    <div id="info">🔵 Blu | ⚪ Bianco | 🟡 Giallo</div>
+    <div id="info">⏳ Caricamento parcheggi in corso...</div>
   </div>
 
   <button class="gps-btn" onclick="trovaPosizione()" title="Dove mi trovo?">🎯</button>
@@ -130,16 +130,13 @@
     let userCircle = null;
 
     fetch('/api/parcheggi')
-      .then(res => res.json())
-      .then(data => {
-        parcheggiLayer = L.geoJSON(data, {
-          style: function(feature) {
-            return {
-              color: feature.properties.colore || '#0088FF',
-              weight: 7,
-              opacity: 0.85
-            };
-          },
+  .then(res => res.json())
+  .then(data => {
+    // Carica le strisce sulla mappa...
+    
+    // Aggiorna la legenda appena i dati sono pronti:
+    document.getElementById('info').innerHTML = '🔵 Blu | ⚪ Bianco | 🟡 Giallo';
+  });
           onEachFeature: function(feature, layer) {
             if (feature.properties) {
               const p = feature.properties;
